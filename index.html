@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Professor e Aluno - E.M.E.I.F. N.S DIVINA PROVIDNCIA</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h2, h3 {
+      color: #2c3e50;
+    }
+    input, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .professor { background-color: #27ae60; color: white; }
+    .professor:hover { background-color: #219150; }
+    .aluno { background-color: #2980b9; color: white; }
+    .aluno:hover { background-color: #2471a3; }
+    .sair { background-color: #c0392b; color: white; }
+    .sair:hover { background-color: #922b21; }
+    .create { background-color: #8e44ad; color: white; }
+    .create:hover { background-color: #732d91; }
+    .delete-btn {
+      color: red;
+      cursor: pointer;
+      margin-left: 10px;
+      font-weight: bold;
+    }
+    .hidden { display: none; }
+    .disciplina-box {
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    iframe {
+      width: 100%;
+      height: 300px;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+    strong {
+      cursor: pointer;
+      color: #34495e;
+    }
+    strong:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<h2>E.M.E.I.F. NOSSA SENHORA DA DIVINA PROVIDNCIA 🏫📚</h2>
+
+<div id="login-area">
+  <input type="text" id="username" placeholder="Usuário" /><br />
+  <input type="password" id="password" placeholder="Senha" /><br />
+  <button class="professor" onclick="login('professor')">Entrar como Professor</button>
+  <button class="aluno" onclick="login('aluno')">Entrar como Aluno</button>
+</div>
+
+<div id="professor-area" class="hidden">
+  <h2>Área do Professor</h2>
+  <input type="text" id="disciplina-nome" placeholder="Nome da nova disciplina" />
+  <button class="create" onclick="criarDisciplina()">Criar Disciplina</button>
+  <h3>Disciplinas:</h3>
+  <div id="disciplinas-lista"></div>
+  <button class="sair" onclick="logout()">Sair</button>
+</div>
+
+<div id="aluno-area" class="hidden">
+  <h2>Área do Aluno</h2>
+  <h3>Disciplinas Disponíveis:</h3>
+  <div id="disciplinas-aluno"></div>
+  <button class="sair" onclick="logout()">Sair</button>
+</div>
+
+<script>
+const binId = "684f0f688960c979a5aa6cd4";  // Seu Bin ID aqui
+const apiKey = "$2a$10$Tko4E3aXyH2fqRB02N3v8ePRjeqQWt3shHVCZiL1B9P9YkWkM9PT6";  // Sua API Key aqui
+let disciplinas = [];
+
+async function carregarDados() {
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+      headers: { 'X-Master-Key': apiKey }
+    });
+    const json = await res.json();
+    disciplinas = json.record.disciplinas || [];
+    atualizarDisciplinas();
+    atualizarAluno();
+  } catch (e) {
+    console.error('Erro ao carregar:', e);
+  }
+}
+
+async function salvarDados() {
+  try {
+    await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": apiKey
+      },
+      body: JSON.stringify({ disciplinas })
+    });
+  } catch (e) {
+    console.error('Erro ao salvar:', e);
+  }
+}
+
+function login(tipo) {
+  const user = document.getElementById('username').value;
+  const pass = document.getElementById('password').value;
+
+  if (tipo === 'professor' && user === 'Kauan' && pass === '1812') {
+    document.getElementById('login-area').classList.add('hidden');
+    document.getElementById('professor-area').classList.remove('hidden');
+    carregarDados();
+  } else if (tipo === 'aluno' && user === 'Aluno' && pass === '123') {
+    document.getElementById('login-area').classList.add('hidden');
+    document.getElementById('aluno-area').classList.remove('hidden');
+    carregarDados();
+  } else {
+    alert('Login ou senha incorretos!');
+  }
+}
+
+function criarDisciplina() {
+  const nome = document.getElementById('disciplina-nome').value.trim();
+  if (nome) {
+    disciplinas.push({ nome: nome, videos: [] });
+    document.getElementById('disciplina-nome').value = '';
+    salvarDados();
+    atualizarDisciplinas();
+    atualizarAluno();
+  } else {
+    alert('Informe o nome da disciplina.');
+  }
+}
+
+function atualizarDisciplinas() {
+  const container = document.getElementById('disciplinas-lista');
+  container.innerHTML = '';
+  disciplinas.forEach((disc, index) => {
+    const div = document.createElement('div');
+    div.className = 'disciplina-box';
+    div.innerHTML = `
+      <strong onclick="adicionarVideo(${index})">${disc.nome}</strong>
+      <span class="delete-btn" onclick="excluirDisciplina(${index})">[Excluir Disciplina]</span>
+    `;
+    disc.videos.forEach((link, vidIndex) => {
+      div.innerHTML += `
+        <iframe src="${link}" frameborder="0" allowfullscreen></iframe>
+        <span class="delete-btn" onclick="excluirVideo(${index}, ${vidIndex})">[Excluir Vídeo]</span>
+      `;
+    });
+    container.appendChild(div);
+  });
+}
+
+function adicionarVideo(index) {
+  const linkOriginal = prompt('Cole o link do vídeo do YouTube (ex: https://www.youtube.com/watch?v=abc123)');
+  if (linkOriginal) {
+    const embedLink = transformarParaEmbed(linkOriginal);
+    if (embedLink) {
+      disciplinas[index].videos.push(embedLink);
+      salvarDados();
+      atualizarDisciplinas();
+      atualizarAluno();
+    } else {
+      alert('Link inválido. Por favor, forneça um link do YouTube válido.');
+    }
+  }
+}
+
+function transformarParaEmbed(url) {
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname.includes('youtube.com') && urlObj.searchParams.get('v')) {
+      return `https://www.youtube.com/embed/${urlObj.searchParams.get('v')}`;
+    } else if (urlObj.hostname === 'youtu.be') {
+      return `https://www.youtube.com/embed/${urlObj.pathname.slice(1)}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function excluirDisciplina(index) {
+  if (confirm('Excluir esta disciplina e todos os vídeos?')) {
+    disciplinas.splice(index, 1);
+    salvarDados();
+    atualizarDisciplinas();
+    atualizarAluno();
+  }
+}
+
+function excluirVideo(discIndex, vidIndex) {
+  if (confirm('Excluir este vídeo?')) {
+    disciplinas[discIndex].videos.splice(vidIndex, 1);
+    salvarDados();
+    atualizarDisciplinas();
+    atualizarAluno();
+  }
+}
+
+function atualizarAluno() {
+  const container = document.getElementById('disciplinas-aluno');
+  container.innerHTML = '';
+  disciplinas.forEach((disc) => {
+    const div = document.createElement('div');
+    div.className = 'disciplina-box';
+    div.innerHTML = `<strong>${disc.nome}</strong>`;
+    disc.videos.forEach((link) => {
+      div.innerHTML += `<iframe src="${link}" frameborder="0" allowfullscreen></iframe>`;
+    });
+    container.appendChild(div);
+  });
+}
+
+function logout() {
+  document.getElementById('login-area').classList.remove('hidden');
+  document.getElementById('professor-area').classList.add('hidden');
+  document.getElementById('aluno-area').classList.add('hidden');
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+}
+</script>
+
+</body>
+</html>
